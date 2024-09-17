@@ -3,9 +3,8 @@ from openai import OpenAI
 import os
 import time
 import threading
-import pystray
-from PIL import Image
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon
 from menu import (SettingsWindow, load_or_create_api_key, load_or_create_keybinds,
                   load_selected_model, load_settings, load_custom_instructions)
 import sys
@@ -15,6 +14,30 @@ from win32com.client import Dispatch
 import pythoncom
 
 from queue import Queue, Empty
+
+
+class SystemTrayIcon(QSystemTrayIcon):
+    def __init__(self, app):
+        super().__init__(app)
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        image_path = os.path.join(script_directory, "write.png")
+        icon = QIcon(image_path) if os.path.exists(image_path) else app.style().standardIcon(QSystemTrayIcon.SP_ComputerIcon)
+        self.setIcon(icon)
+        self.setToolTip("OpenAI App")
+
+        # Create the menu
+        self.menu = QMenu()
+        self.open_settings_action = QAction("Open Settings")
+        self.open_settings_action.triggered.connect(open_menu)
+        self.menu.addAction(self.open_settings_action)
+
+        self.quit_action = QAction("Quit")
+        self.quit_action.triggered.connect(app.quit)
+        self.menu.addAction(self.quit_action)
+
+        self.setContextMenu(self.menu)
+        self.show()
+
 
 # Default keybinds
 DEFAULT_OPTIONS = {
@@ -379,9 +402,6 @@ def background_task():
         type_out_text_fast_streamed(response_stream)
 
 
-def create_image(image_path):
-    # Load an image from the given path
-    return Image.open(image_path)
 
 
 def on_quit(icon, item):
@@ -401,30 +421,35 @@ def reload_settings():
 def open_menu():
     """Function to open the PyQt5 menu and pause the background task."""
     pause_event.clear()  # Pause the background task
-    app = QApplication(sys.argv)
     window = SettingsWindow()
-    window.show()
-    app.exec_()  # This will block execution until the menu is closed
+    window.exec_()  # This will block execution until the menu is closed
     reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
     pause_event.set()  # Resume the background task after the menu is closed
 
 
-def setup_system_tray():
+def setup_system_tray(app):
     # Provide the path to your icon image (e.g., "write.png")
     script_directory = os.path.dirname(os.path.abspath(__file__))
     image_path = os.path.join(script_directory, "write.png")
-    if not os.path.exists(image_path):
-        # Create a simple blank image if the icon doesn't exist
-        image = Image.new('RGB', (64, 64), color=(255, 0, 0))
-    else:
-        image = create_image(image_path)
+    icon = QIcon(image_path) if os.path.exists(image_path) else app.style().standardIcon(QSystemTrayIcon.SP_ComputerIcon)
 
-    icon = pystray.Icon("OpenAI App", image, menu=pystray.Menu(
-        pystray.MenuItem("Open Settings", lambda: open_menu()),
-        pystray.MenuItem("Quit", lambda: on_quit(icon, None))
-    ))
-    icon.run()
-    # After icon.run() returns, the main thread can exit gracefully
+    tray_icon = QSystemTrayIcon(icon, app)
+    tray_icon.setToolTip("OpenAI App")
+
+    # Create the menu
+    menu = QMenu()
+
+    open_settings_action = QAction("Open Settings")
+    open_settings_action.triggered.connect(open_menu)
+    menu.addAction(open_settings_action)
+
+    quit_action = QAction("Quit")
+    quit_action.triggered.connect(app.quit)
+    menu.addAction(quit_action)
+
+    tray_icon.setContextMenu(menu)
+    tray_icon.show()
+
 
 
 if __name__ == "__main__":
@@ -434,13 +459,16 @@ if __name__ == "__main__":
     # Set the event to 'set' (background task can run)
     pause_event.set()
 
-    # Run the main program in a separate thread
+    # Initialize QApplication
+    app = QApplication(sys.argv)
+
+    # Run the background task in a separate thread
     task_thread = threading.Thread(target=background_task)
     task_thread.daemon = True
     task_thread.start()
 
-    # Setup the system tray icon and run it in the main thread
-    setup_system_tray()
+    # Setup the system tray icon
+    tray_icon = SystemTrayIcon(app)
 
-    # After the tray icon is stopped, exit the program
-    sys.exit(0)
+    # Start the event loop
+    sys.exit(app.exec_())

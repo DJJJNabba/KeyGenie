@@ -6,7 +6,7 @@ import keyboard
 from ctypes import wintypes
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QTextEdit, QPushButton,
                              QVBoxLayout, QHBoxLayout, QSlider, QCheckBox, QComboBox, QMessageBox,
-                             QScrollArea)
+                             QScrollArea, QDialog)
 from PyQt5.QtCore import Qt
 from win32com.client import Dispatch
 
@@ -171,7 +171,7 @@ def save_settings(settings):
             file.write(f"{key}:{value}\n")
 
 
-class SettingsWindow(QWidget):
+class SettingsWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Settings Menu")
