@@ -23,7 +23,7 @@ DEFAULT_KEYBINDS = {
     "prompt": "right shift",
     "completion": "right ctrl"
 }
-DEFAULT_MODEL = "gpt-3.5-turbo"
+DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
 DEFAULT_SETTINGS = {
     "temperature": 1.0,
     "max_tokens": 256,
