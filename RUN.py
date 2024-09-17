@@ -14,7 +14,7 @@ def get_pythonw_path():
         return pythonw_path
     else:
         return None  # Return None if pythonw.exe is not found
-# this is a comment
+# this is not a comment
 def relaunch_with_pythonw():
     """Relaunch the script using pythonw.exe to avoid showing the terminal window."""
     pythonw_executable = get_pythonw_path()
