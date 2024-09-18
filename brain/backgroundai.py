@@ -17,7 +17,7 @@ from queue import Queue, Empty
 
 
 class SystemTrayIcon(QSystemTrayIcon):
-    def __init__(self, app):
+    def __init__(self, app:QApplication):
         super().__init__(app)
         script_directory = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(script_directory, "write.png")
@@ -109,7 +109,7 @@ def wait_for_keypress():
     # Continuously wait for either the prompt or completion keybind
     while True:
         pause_event.wait()  # Wait if the event is paused
-        event = keyboard.read_event()
+        event = keyboard.read_event() # this blocks until a key is pressed on the keyboard, which means that if pause event happens, would still be waiting for a key press
         if event.event_type == keyboard.KEY_DOWN and event.name in [keybinds['prompt'], keybinds['completion']]:
             return event.name  # Return the key that was pressed to start the input capture
 
@@ -404,9 +404,9 @@ def background_task():
 
 
 
-def on_quit(icon, item):
-    icon.stop()
-    # No need to call sys.exit() here; the main thread will exit after icon.stop()
+# def on_quit(icon, item):
+#     icon.stop()
+#     # No need to call sys.exit() here; the main thread will exit after icon.stop()
 
 
 def reload_settings():
@@ -421,34 +421,11 @@ def reload_settings():
 def open_menu():
     """Function to open the PyQt5 menu and pause the background task."""
     pause_event.clear()  # Pause the background task
-    window = SettingsWindow()
-    window.exec_()  # This will block execution until the menu is closed
-    reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
+    window = SettingsWindow(pause_event)
+    window.show()
+    # reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
+    # reload settings is instead called in the CloseEvent function of the settings menu class.
     pause_event.set()  # Resume the background task after the menu is closed
-
-
-def setup_system_tray(app):
-    # Provide the path to your icon image (e.g., "write.png")
-    script_directory = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(script_directory, "write.png")
-    icon = QIcon(image_path) if os.path.exists(image_path) else app.style().standardIcon(QSystemTrayIcon.SP_ComputerIcon)
-
-    tray_icon = QSystemTrayIcon(icon, app)
-    tray_icon.setToolTip("OpenAI App")
-
-    # Create the menu
-    menu = QMenu()
-
-    open_settings_action = QAction("Open Settings")
-    open_settings_action.triggered.connect(open_menu)
-    menu.addAction(open_settings_action)
-
-    quit_action = QAction("Quit")
-    quit_action.triggered.connect(app.quit)
-    menu.addAction(quit_action)
-
-    tray_icon.setContextMenu(menu)
-    tray_icon.show()
 
 
 
@@ -461,6 +438,9 @@ if __name__ == "__main__":
 
     # Initialize QApplication
     app = QApplication(sys.argv)
+    
+    # ensure that the application doesn't quit when the settings window is closed.
+    app.setQuitOnLastWindowClosed(False)
 
     # Run the background task in a separate thread
     task_thread = threading.Thread(target=background_task)

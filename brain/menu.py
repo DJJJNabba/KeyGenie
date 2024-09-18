@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import ctypes
+from PyQt5.QtGui import QCloseEvent
 import keyboard
 from ctypes import wintypes
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QTextEdit, QPushButton,
@@ -172,11 +173,12 @@ def save_settings(settings):
 
 
 class SettingsWindow(QDialog):
-    def __init__(self):
+    def __init__(self, pause_event_flag):
         super().__init__()
         self.setWindowTitle("Settings Menu")
         self.setGeometry(100, 100, 500, 600)
 
+        self.pause_event = pause_event_flag
         self.init_ui()
         self.current_action = None  # Track which keybind is being set
         self.api_key_visible = False  # Track visibility of the API key
@@ -420,6 +422,12 @@ class SettingsWindow(QDialog):
         self.scroll_area.setWidget(self.content_widget)
         main_layout.addWidget(self.scroll_area)
 
+
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        import backgroundai
+        self.pause_event.set()
+        backgroundai.reload_settings()
+        self.close()
 
     def load_api_key(self):
         api_key = load_or_create_api_key()
