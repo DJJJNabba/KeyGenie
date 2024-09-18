@@ -1,7 +1,7 @@
 import os
 import shutil
 import sys
-import ctypes
+from threading import Event
 from PyQt5.QtGui import QCloseEvent
 import keyboard
 from ctypes import wintypes
@@ -39,7 +39,7 @@ DEFAULT_SETTINGS = {
 APPDATA_FOLDER = os.getenv('APPDATA')
 STARTUP_SHORTCUT_PATH = os.path.join(APPDATA_FOLDER, r'Microsoft\Windows\Start Menu\Programs\Startup', 'AIKeyboard.lnk')
 
-def load_or_create_api_key():
+def load_or_create_api_key() -> str:
     """Load or create an API key."""
     if not os.path.exists(PRIVATE_FOLDER):
         os.makedirs(PRIVATE_FOLDER)
@@ -52,8 +52,10 @@ def load_or_create_api_key():
     return ""
 
 
-def load_or_create_keybinds():
-    """Load or create keybinds."""
+def load_or_create_keybinds() -> dict[str:str]:
+    """Load or create keybinds.\n\nReturns the keybinds read from the file given by the KEYBINDS_FILE global variable's specified path.
+    \n\nIf the PRIVATE_FOLDER global variable's path doesn't exist, function also creates the directory on top of other function.
+    \n\nIf the path specified in the KEYBINDS_FILE global cannot be found by the program, returns a copy of the DEFAULT_KEYBINDS global variable."""
     if not os.path.exists(PRIVATE_FOLDER):
         os.makedirs(PRIVATE_FOLDER)
 
@@ -66,15 +68,15 @@ def load_or_create_keybinds():
     return DEFAULT_KEYBINDS.copy()
 
 
-def save_keybinds(keybinds):
-    """Save keybinds to a file."""
+def save_keybinds(keybinds:dict[str:str]) -> None:
+    """Save keybinds to a file.\n\n The file written to is determined by the KEYBINDS_FILE global variable"""
     with open(KEYBINDS_FILE, "w") as file:
         for action, key in keybinds.items():
             file.write(f"{action}: {key}\n")
 
 
-def load_selected_model():
-    """Load the selected model from file."""
+def load_selected_model() -> str:
+    """Load the selected model's id/name from file."""
     if os.path.exists(MODEL_FILE):
         with open(MODEL_FILE, "r") as file:
             model_id = file.read().strip()
@@ -82,13 +84,13 @@ def load_selected_model():
     return DEFAULT_MODEL
 
 
-def save_selected_model(model_id):
-    """Save the selected model to file."""
+def save_selected_model(model_id) -> None:
+    """Save the selected model to file.\n\nThe file written to is specified by MODEL_FILE global variable"""
     with open(MODEL_FILE, "w") as file:
         file.write(model_id)
 
 
-def enable_startup():
+def enable_startup() -> None:
     """Enable the app to run on startup by creating a shortcut."""
     script_directory = os.path.dirname(os.path.abspath(__file__))
     shortcut_target = os.path.join(script_directory, "backgroundai.py")
@@ -135,7 +137,7 @@ def save_custom_instructions(instructions):
         file.write(instructions)
 
 
-def load_settings():
+def load_settings() -> dict[str:int|bool]:
     """Load settings from file or use default settings."""
     settings = DEFAULT_SETTINGS.copy()
     if os.path.exists(SETTINGS_FILE):
@@ -165,7 +167,7 @@ def load_settings():
     return settings
 
 
-def save_settings(settings):
+def save_settings(settings:dict[str:int|bool]) -> None:
     """Save settings to a file."""
     with open(SETTINGS_FILE, "w") as file:
         for key, value in settings.items():
@@ -173,7 +175,7 @@ def save_settings(settings):
 
 
 class SettingsWindow(QDialog):
-    def __init__(self, pause_event_flag):
+    def __init__(self, pause_event_flag:Event) -> None:
         super().__init__()
         self.setWindowTitle("Settings Menu")
         self.setGeometry(100, 100, 500, 600)
@@ -183,7 +185,7 @@ class SettingsWindow(QDialog):
         self.current_action = None  # Track which keybind is being set
         self.api_key_visible = False  # Track visibility of the API key
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         
         # Create a scroll area
@@ -424,12 +426,20 @@ class SettingsWindow(QDialog):
 
 
     def closeEvent(self, a0: QCloseEvent | None) -> None:
+        """
+        The PyQt5 main event loop runs this method when the red X has been clicked on the settings menu. To wrap up the setting menu, it does the following:
+        \n\n Sets the pause_event threading.Event flag to True, allowing the background process that listens to keyboard strokes to continue. 
+        \n\n Runs backgroundai.reload_settings() in order to change the global variables appropriately such that setting changes take place
+        \n\n Removes the instance of the SettingsWindow with self.close(), such that the window is removed. 
+        """
         import backgroundai
         self.pause_event.set()
         backgroundai.reload_settings()
         self.close()
 
-    def load_api_key(self):
+    def load_api_key(self) -> None:
+        """Loads the api key using the load_or_create_api_key() function, then adds the api key string to a QLineEdit object for display (self.api_key_input)
+        \n\n Also, there is no plain str attribute with the api key for some reason."""
         api_key = load_or_create_api_key()
         if api_key:
             self.api_key_input.setText(api_key)
@@ -453,15 +463,17 @@ class SettingsWindow(QDialog):
             self.toggle_api_key_button.setText("Hide")
         self.api_key_visible = not self.api_key_visible
 
-    def load_keybinds(self):
+    def load_keybinds(self) -> None:
+        """uses load_or_create_keybinds() to set SettingsWindow.keybinds, and adds the keybinds to the menu text"""
         self.keybinds = load_or_create_keybinds()
         self.prompt_keybind_input.setText(self.keybinds["prompt"])
         self.completion_keybind_input.setText(self.keybinds["completion"])
 
     def save_keybinds_to_file(self):
-        save_keybinds(self.keybinds)
+        """clone of running save_keybinds() on SettingsWindow.keybinds"""
+        return save_keybinds(self.keybinds)
 
-    def select_keybind(self, action, button):
+    def select_keybind(self, action, button) -> None:
         """Change the button color and wait for key input."""
         if self.current_action:
             return  # Prevent setting multiple keybinds at once

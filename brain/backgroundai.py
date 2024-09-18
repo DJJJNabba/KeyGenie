@@ -145,7 +145,7 @@ def capture_input():
     return captured_string
 
 
-def stream_openai_completion(prompt):
+def stream_openai_completion(prompt:str):
     try:
         # Load the selected model
         model_id = load_selected_model()
@@ -195,7 +195,7 @@ def stream_openai_completion(prompt):
         return None
 
 
-def clean_text(text):
+def clean_text(text:str) -> str:
     """Clean the text by removing newlines and non-printable characters."""
     # Remove newlines
     text = text.replace('\n', ' ').replace('\r', ' ')
@@ -204,7 +204,8 @@ def clean_text(text):
     return text.strip()
 
 
-def type_out_text_fast_streamed(response):
+def type_out_text_fast_streamed(response) -> None:
+    """spawns typing, text-to-speech (tts), and stop-listener workers using multithreading"""
     print("\nTyping out the text as it's received...")
 
     if response is None:
@@ -246,7 +247,6 @@ def type_out_text_fast_streamed(response):
         pause_event.wait()  # Wait if the event is paused
         if typing_stop_event.is_set() or tts_stop_event.is_set():
             break  # Stop processing if stop event is set
-
         if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
             choice = chunk.choices[0]
             token = None
@@ -278,7 +278,7 @@ def type_out_text_fast_streamed(response):
     keyboard.unhook_all()
 
 
-def typing_worker(typing_queue, typing_speed_wpm, letter_by_letter, stop_event):
+def typing_worker(typing_queue:Queue, typing_speed_wpm:int, letter_by_letter:bool, stop_event:threading.Event) -> None:
     # Calculate delay between characters based on typing speed (WPM)
     chars_per_minute = typing_speed_wpm * 5  # Approximate words per minute to characters per minute
     delay_per_char = 60 / chars_per_minute  # Time per character in seconds
@@ -307,7 +307,7 @@ def typing_worker(typing_queue, typing_speed_wpm, letter_by_letter, stop_event):
         typing_queue.task_done()
 
 
-def tts_worker(tts_queue, tts_rate, stop_event):
+def tts_worker(tts_queue:Queue, tts_rate:int, stop_event:threading.Event) -> None:
     pythoncom.CoInitialize()
     try:
         speaker = Dispatch("SAPI.SpVoice")
@@ -365,7 +365,8 @@ def tts_worker(tts_queue, tts_rate, stop_event):
         pythoncom.CoUninitialize()
 
 
-def stop_listener_worker():
+def stop_listener_worker() -> None:
+    """Sets a keyboard hook that, on keydown event, sets the typing_stop_event and the tts_stop_event flags that stop the other workers providing the AI's output."""
     def on_key_event(event):
         if event.event_type == 'down':
             # Set the stop events to stop typing and TTS
@@ -378,7 +379,9 @@ def stop_listener_worker():
     keyboard.hook(on_key_event)
 
 
-def background_task():
+def background_task() -> None:
+    """The semi-self-contained function run as a background subprocess to listen to keyboard input, send the input to the AI model, and output the resulting response. 
+    \n\nCan be paused by the setting of the pause_event threading.Event (when the settings menu is being used.) """
     # Continuous loop to keep the program running indefinitely
     while True:
         pause_event.wait()  # Wait if the event is paused
@@ -419,13 +422,13 @@ def reload_settings():
 
 
 def open_menu():
-    """Function to open the PyQt5 menu and pause the background task."""
+    """Function to open the PyQt5 menu and pause the background task.
+    \n\n The menu closing method closeEvent(event) sets the flag for the background task to continue"""
     pause_event.clear()  # Pause the background task
     window = SettingsWindow(pause_event)
     window.show()
     # reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
     # reload settings is instead called in the CloseEvent function of the settings menu class.
-    pause_event.set()  # Resume the background task after the menu is closed
 
 
 
