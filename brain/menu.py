@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+import json
 from threading import Event
 from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap, QFont, QPainter, QColor
 import keyboard
@@ -14,16 +15,12 @@ from win32com.client import Dispatch
 # File paths for saving settings
 PRIVATE_FOLDER = os.path.join(os.path.expanduser("~"), "privateVariables")
 API_KEY_FILE = os.path.join(PRIVATE_FOLDER, "apikey.txt")
-KEYBINDS_FILE = os.path.join(PRIVATE_FOLDER, "keybinds.txt")
-MODEL_FILE = os.path.join(PRIVATE_FOLDER, "model.txt")
-SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.txt")
-CUSTOM_INSTRUCTIONS_FILE = os.path.join(PRIVATE_FOLDER, "custom_instructions.txt")
+# KEYBINDS_FILE = os.path.join(PRIVATE_FOLDER, "keybinds.txt")
+# MODEL_FILE = os.path.join(PRIVATE_FOLDER, "model.txt")
+SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.json")
+# CUSTOM_INSTRUCTIONS_FILE = os.path.join(PRIVATE_FOLDER, "custom_instructions.txt")
 
 # Default keybinds and settings
-DEFAULT_KEYBINDS = {
-    "prompt": "right shift",
-    "completion": "right ctrl"
-}
 DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
 DEFAULT_SETTINGS = {
     "temperature": 1.0,
@@ -32,12 +29,46 @@ DEFAULT_SETTINGS = {
     "typing_speed_wpm": 200,
     "letter_by_letter": True,  # Default to letter-by-letter typing
     "play_tts": False,         # Default to not playing TTS
-    "tts_rate": 0              # Default TTS rate
+    "tts_rate": 0,             # Default TTS rate
+    "model": "gpt-4o-mini-2024-07-18",
+    "keybinds" : {
+        "prompt" : "right shift",
+        "completion" : "right ctrl",
+    },
+    "custom_instructions": "",
 }
 
 # Startup shortcut paths
 APPDATA_FOLDER = os.getenv('APPDATA')
 STARTUP_SHORTCUT_PATH = os.path.join(APPDATA_FOLDER, r'Microsoft\Windows\Start Menu\Programs\Startup', 'AIKeyboard.lnk')
+
+model_ids = [
+            # Chat models
+            'gpt-4',
+            'gpt-4-0613',
+            'gpt-4-1106-preview',
+            'gpt-4-turbo',
+            'gpt-4-turbo-2024-04-09',
+            'gpt-4-turbo-preview',
+            'gpt-4o',
+            'gpt-4o-2024-05-13',
+            'gpt-4o-mini',
+            'gpt-4o-mini-2024-07-18',
+            'gpt4o-0806-loco-vm',
+            'gpt-3.5-turbo',
+            'gpt-3.5-turbo-16k',
+            'gpt-3.5-turbo-0125',
+            'gpt-3.5-turbo-1106',
+            'gpt-3.5-turbo-instruct',  # Legacy completion model
+            'gpt-3.5-turbo-instruct-0914',  # Legacy completion model
+            # Legacy completion models
+            'davinci-002',
+            'babbage-002',
+            'text-davinci-003',
+            'text-curie-001',
+            'text-babbage-001',
+            'text-ada-001',
+        ]
 
 def load_or_create_api_key() -> str:
     """Load or create an API key."""
@@ -52,42 +83,42 @@ def load_or_create_api_key() -> str:
     return ""
 
 
-def load_or_create_keybinds() -> dict[str:str]:
-    """Load or create keybinds.\n\nReturns the keybinds read from the file given by the KEYBINDS_FILE global variable's specified path.
-    \n\nIf the PRIVATE_FOLDER global variable's path doesn't exist, function also creates the directory on top of other function.
-    \n\nIf the path specified in the KEYBINDS_FILE global cannot be found by the program, returns a copy of the DEFAULT_KEYBINDS global variable."""
-    if not os.path.exists(PRIVATE_FOLDER):
-        os.makedirs(PRIVATE_FOLDER)
+# def load_or_create_keybinds() -> dict[str:str]:
+#     """Load or create keybinds.\n\nReturns the keybinds read from the file given by the KEYBINDS_FILE global variable's specified path.
+#     \n\nIf the PRIVATE_FOLDER global variable's path doesn't exist, function also creates the directory on top of other function.
+#     \n\nIf the path specified in the KEYBINDS_FILE global cannot be found by the program, returns a copy of the DEFAULT_KEYBINDS global variable."""
+#     if not os.path.exists(PRIVATE_FOLDER):
+#         os.makedirs(PRIVATE_FOLDER)
 
-    if os.path.exists(KEYBINDS_FILE):
-        with open(KEYBINDS_FILE, "r") as file:
-            lines = file.readlines()
-            keybinds = {line.split(":")[0]: line.split(":")[1].strip() for line in lines}
-            return keybinds
+#     if os.path.exists(KEYBINDS_FILE):
+#         with open(KEYBINDS_FILE, "r") as file:
+#             lines = file.readlines()
+#             keybinds = {line.split(":")[0]: line.split(":")[1].strip() for line in lines}
+#             return keybinds
 
-    return DEFAULT_KEYBINDS.copy()
-
-
-def save_keybinds(keybinds:dict[str:str]) -> None:
-    """Save keybinds to a file.\n\n The file written to is determined by the KEYBINDS_FILE global variable"""
-    with open(KEYBINDS_FILE, "w") as file:
-        for action, key in keybinds.items():
-            file.write(f"{action}: {key}\n")
+#     return DEFAULT_KEYBINDS.copy()
 
 
-def load_selected_model() -> str:
-    """Load the selected model's id/name from file."""
-    if os.path.exists(MODEL_FILE):
-        with open(MODEL_FILE, "r") as file:
-            model_id = file.read().strip()
-        return model_id
-    return DEFAULT_MODEL
+# def save_keybinds(keybinds:dict[str:str]) -> None:
+#     """Save keybinds to a file.\n\n The file written to is determined by the KEYBINDS_FILE global variable"""
+#     with open(KEYBINDS_FILE, "w") as file:
+#         for action, key in keybinds.items():
+#             file.write(f"{action}: {key}\n")
 
 
-def save_selected_model(model_id) -> None:
-    """Save the selected model to file.\n\nThe file written to is specified by MODEL_FILE global variable"""
-    with open(MODEL_FILE, "w") as file:
-        file.write(model_id)
+# def load_selected_model() -> str:
+#     """Load the selected model's id/name from file."""
+#     if os.path.exists(MODEL_FILE):
+#         with open(MODEL_FILE, "r") as file:
+#             model_id = file.read().strip()
+#         return model_id
+#     return DEFAULT_MODEL
+
+
+# def save_selected_model(model_id) -> None:
+#     """Save the selected model to file.\n\nThe file written to is specified by MODEL_FILE global variable"""
+#     with open(MODEL_FILE, "w") as file:
+#         file.write(model_id)
 
 
 def enable_startup() -> None:
@@ -121,62 +152,74 @@ def disable_startup():
         QMessageBox.warning(None, "Already Disabled", "The application is not set to run at startup.")
 
 
-def load_custom_instructions():
-    """Load custom instructions from file."""
-    if os.path.exists(CUSTOM_INSTRUCTIONS_FILE):
-        with open(CUSTOM_INSTRUCTIONS_FILE, "r", encoding='utf-8') as file:
-            instructions = file.read()
-            return instructions
-    else:
-        return ""
+# def load_custom_instructions():
+#     """Load custom instructions from file."""
+#     if os.path.exists(CUSTOM_INSTRUCTIONS_FILE):
+#         with open(CUSTOM_INSTRUCTIONS_FILE, "r", encoding='utf-8') as file:
+#             instructions = file.read()
+#             return instructions
+#     else:
+#         return ""
 
 
-def save_custom_instructions(instructions):
-    """Save custom instructions to file."""
-    with open(CUSTOM_INSTRUCTIONS_FILE, "w", encoding='utf-8') as file:
-        file.write(instructions)
+# def save_custom_instructions(instructions):
+#     """Save custom instructions to file."""
+#     with open(CUSTOM_INSTRUCTIONS_FILE, "w", encoding='utf-8') as file:
+#         file.write(instructions)
 
 
-def load_settings() -> dict[str:int|bool]:
+def load_settings() -> dict[str:float|int|bool|str]:
     """Load settings from file or use default settings."""
     settings = DEFAULT_SETTINGS.copy()
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as file:
-            lines = file.readlines()
-            for line in lines:
-                if ":" not in line:
-                    continue  # Skip malformed lines
-                key, value = line.strip().split(":", 1)
-                if key == "temperature":
-                    settings["temperature"] = float(value)
-                elif key == "max_tokens":
-                    settings["max_tokens"] = int(value)
-                elif key == "auto_type":
-                    settings["auto_type"] = value.lower() == 'true'
-                elif key == "typing_speed_wpm":
-                    settings["typing_speed_wpm"] = int(value)
-                elif key == "letter_by_letter":
-                    settings["letter_by_letter"] = value.lower() == 'true'
-                elif key == "play_tts":
-                    settings["play_tts"] = value.lower() == 'true'
-                elif key == "tts_rate":
-                    try:
-                        settings["tts_rate"] = int(value)
-                    except ValueError:
-                        settings["tts_rate"] = DEFAULT_SETTINGS["tts_rate"]
+    if not os.path.exists(SETTINGS_FILE):
+        return DEFAULT_SETTINGS
+    with open(SETTINGS_FILE, "r") as file:
+        settings = json.load(file)
     return settings
 
 
-def save_settings(settings:dict[str:int|bool]) -> None:
+def save_settings(settings:dict[str:float|int|bool|str]) -> None:
     """Save settings to a file."""
     with open(SETTINGS_FILE, "w") as file:
-        for key, value in settings.items():
-            file.write(f"{key}:{value}\n")
-
+        json.dump(settings, file, indent=4)
 
 class SettingsWindow(QDialog):
+    class Settings():
+        def __init__(self,settings:dict[str:float|int|str|bool]):
+            self._settings_dict = settings
+            self.model = settings["model"]
+            self.temperature = settings["temperature"]
+            self.max_tokens = settings["max_tokens"]
+            self.auto_type = settings["auto_type"]
+            self.typing_speed_wpm = settings["typing_speed_wpm"]
+            self.letter_by_letter = settings["letter_by_letter"]
+            self.play_tts = settings["play_tts"]
+            self.tts_rate = settings["tts_rate"]
+            self.custom_instructions = settings["custom_instructions"]
+            self.keybinds = settings["keybinds"]
+            self.keybind_prompt = settings["keybinds"]["prompt"]
+            self.keybind_completion = settings["keybinds"]["completion"]
+        def __getitem__(self,key):
+            return self.__getattribute__(key)
+        def __setitem__(self, key, value) -> None:
+            return self.__setattr__(key,value)
+        def __setattr__(self, name: str, value) -> None:
+            if name == "_settings_dict": #avoids key error when setting the self._settings_dict for the first time.
+                pass
+            elif name in self._settings_dict:
+                self.__getattribute__("_settings_dict")[name] = value
+            return super().__setattr__(name,value)
+        def __iter__(self):
+            return self._settings_dict.__iter__()
+        @property
+        def settings_dict(self): return self._settings_dict.copy()
+
     def __init__(self, pause_event_flag:Event) -> None:
         super().__init__()
+        settings_dict = load_settings()
+        self.settings = self.Settings(settings_dict)
+        self.saved_settings = self.Settings(settings_dict)
+
         self.setWindowTitle("KeyGenie Menu")
         # Set the window icon
         script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -283,37 +326,9 @@ class SettingsWindow(QDialog):
         content_layout.addWidget(self.model_label)
         
         self.model_combo_box = QComboBox()
-        model_ids = [
-            # Chat models
-            'gpt-4',
-            'gpt-4-0613',
-            'gpt-4-1106-preview',
-            'gpt-4-turbo',
-            'gpt-4-turbo-2024-04-09',
-            'gpt-4-turbo-preview',
-            'gpt-4o',
-            'gpt-4o-2024-05-13',
-            'gpt-4o-mini',
-            'gpt-4o-mini-2024-07-18',
-            'gpt4o-0806-loco-vm',
-            'gpt-3.5-turbo',
-            'gpt-3.5-turbo-16k',
-            'gpt-3.5-turbo-0125',
-            'gpt-3.5-turbo-1106',
-            'gpt-3.5-turbo-instruct',  # Legacy completion model
-            'gpt-3.5-turbo-instruct-0914',  # Legacy completion model
-            # Legacy completion models
-            'davinci-002',
-            'babbage-002',
-            'text-davinci-003',
-            'text-curie-001',
-            'text-babbage-001',
-            'text-ada-001',
-        ]
         self.model_combo_box.addItems(model_ids)
         content_layout.addWidget(self.model_combo_box)
-        
-        selected_model = load_selected_model()
+        selected_model = self.settings.model
         if selected_model in model_ids:
             index = model_ids.index(selected_model)
             self.model_combo_box.setCurrentIndex(index)
@@ -328,7 +343,7 @@ class SettingsWindow(QDialog):
         
         self.custom_instructions_text = QTextEdit()
         self.custom_instructions_text.setPlaceholderText("Enter custom instructions for the AI here...")
-        self.custom_instructions_text.setPlainText(load_custom_instructions())
+        self.custom_instructions_text.setPlainText(self.settings.custom_instructions)
         content_layout.addWidget(self.custom_instructions_text)
         
         self.save_instructions_button = QPushButton("Save Instructions")
@@ -371,18 +386,17 @@ class SettingsWindow(QDialog):
 
         content_layout.addLayout(completion_keybind_layout)
 
-        
-        self.load_keybinds()
-        
         self.revert_keybinds_button = QPushButton("Revert to Default Keybinds")
         self.revert_keybinds_button.clicked.connect(self.revert_to_default_keybinds)
         content_layout.addWidget(self.revert_keybinds_button)
+
+        # set the text for the input boxes, so the current keybind is visable.
+        self.prompt_keybind_input.setText(self.settings.keybinds["prompt"])
+        self.completion_keybind_input.setText(self.settings.keybinds["completion"])
         
         # 5. Additional Settings (Temperature, Max Tokens, Typing, TTS)
         self.settings_label = QLabel("Additional Settings:")
         content_layout.addWidget(self.settings_label)
-        
-        self.settings = load_settings()
         
         # Temperature Slider
         temp_layout = QHBoxLayout()
@@ -408,7 +422,7 @@ class SettingsWindow(QDialog):
         
         # Auto-Type Checkbox
         self.auto_type_checkbox = QCheckBox("Auto-Type")
-        self.auto_type_checkbox.setChecked(self.settings.get('auto_type', True))
+        self.auto_type_checkbox.setChecked(self.settings['auto_type'])
         self.auto_type_checkbox.stateChanged.connect(self.on_auto_type_changed)
         content_layout.addWidget(self.auto_type_checkbox)
         
@@ -427,25 +441,25 @@ class SettingsWindow(QDialog):
         
         # Letter by Letter Checkbox (only visible if Auto-Type is enabled)
         self.letter_by_letter_checkbox = QCheckBox("Letter by Letter Typing")
-        self.letter_by_letter_checkbox.setChecked(self.settings.get('letter_by_letter', True))
+        self.letter_by_letter_checkbox.setChecked(self.settings['letter_by_letter'])
         self.letter_by_letter_checkbox.stateChanged.connect(self.on_letter_by_letter_changed)
         content_layout.addWidget(self.letter_by_letter_checkbox)
         
         # Play TTS Checkbox
         self.play_tts_checkbox = QCheckBox("Play TTS")
-        self.play_tts_checkbox.setChecked(self.settings.get('play_tts', False))
+        self.play_tts_checkbox.setChecked(self.settings['play_tts'])
         self.play_tts_checkbox.stateChanged.connect(self.on_play_tts_changed)
         content_layout.addWidget(self.play_tts_checkbox)
         
         # TTS Rate Slider (initially hidden)
         self.tts_rate_layout = QHBoxLayout()
-        self.tts_rate_label = QLabel(f"TTS Rate: {self.settings.get('tts_rate', 0)}")
+        self.tts_rate_label = QLabel(f"TTS Rate: {self.settings['tts_rate']}")
         self.tts_rate_layout.addWidget(self.tts_rate_label)
         
         self.tts_rate_slider = QSlider(Qt.Horizontal)
         self.tts_rate_slider.setMinimum(-10)
         self.tts_rate_slider.setMaximum(10)
-        self.tts_rate_slider.setValue(self.settings.get('tts_rate', 0))
+        self.tts_rate_slider.setValue(self.settings['tts_rate'])
         self.tts_rate_slider.valueChanged.connect(self.on_tts_rate_changed)
         self.tts_rate_layout.addWidget(self.tts_rate_slider)
         content_layout.addLayout(self.tts_rate_layout)
@@ -468,7 +482,7 @@ class SettingsWindow(QDialog):
         
         # 7. Save and Revert Buttons
         self.save_settings_button = QPushButton("Save Settings")
-        self.save_settings_button.clicked.connect(self.save_additional_settings)
+        self.save_settings_button.clicked.connect(self.save_settings)
         content_layout.addWidget(self.save_settings_button)
         
         self.revert_settings_button = QPushButton("Revert to Default Settings")
@@ -479,7 +493,6 @@ class SettingsWindow(QDialog):
         self.scroll_area.setWidget(self.content_widget)
         main_layout.addWidget(self.scroll_area)
 
-
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         """
         The PyQt5 main event loop runs this method when the red X has been clicked on the settings menu. To wrap up the setting menu, it does the following:
@@ -487,6 +500,11 @@ class SettingsWindow(QDialog):
         \n\n Runs backgroundai.reload_settings() in order to change the global variables appropriately such that setting changes take place
         \n\n Removes the instance of the SettingsWindow with self.close(), such that the window is removed. 
         """
+        if self.saved_settings.settings_dict != self.settings.settings_dict:
+            # ask user if they want to save before exiting settings, as they have unsaved changes.
+            print('should as user if they want to save currently unsaved changes.')
+            pass
+
         import backgroundai
         self.pause_event.set()
         backgroundai.reload_settings()
@@ -518,15 +536,15 @@ class SettingsWindow(QDialog):
             self.toggle_api_key_button.setText("Hide")
         self.api_key_visible = not self.api_key_visible
 
-    def load_keybinds(self) -> None:
-        """uses load_or_create_keybinds() to set SettingsWindow.keybinds, and adds the keybinds to the menu text"""
-        self.keybinds = load_or_create_keybinds()
-        self.prompt_keybind_input.setText(self.keybinds["prompt"])
-        self.completion_keybind_input.setText(self.keybinds["completion"])
+    # def load_keybinds(self) -> None:
+    #     """uses load_or_create_keybinds() to set SettingsWindow.keybinds, and adds the keybinds to the menu text"""
+    #     self.keybinds = load_or_create_keybinds()
+    #     self.prompt_keybind_input.setText(self.keybinds["prompt"])
+    #     self.completion_keybind_input.setText(self.keybinds["completion"])
 
-    def save_keybinds_to_file(self):
-        """clone of running save_keybinds() on SettingsWindow.keybinds"""
-        return save_keybinds(self.keybinds)
+    # def save_keybinds_to_file(self):
+    #     """clone of running save_keybinds() on SettingsWindow.keybinds"""
+    #     return save_keybinds(self.keybinds)
 
     def select_keybind(self, action, button) -> None:
         """Change the button color and wait for key input."""
@@ -541,13 +559,15 @@ class SettingsWindow(QDialog):
             if event.event_type == "down":  # Only capture key down events
                 key = event.name
                 if action == "prompt":
-                    self.keybinds["prompt"] = key
+                    self.settings.keybinds["prompt"] = key
                     self.prompt_keybind_input.setText(key)
                 elif action == "completion":
-                    self.keybinds["completion"] = key
+                    self.settings.keybinds["completion"] = key
                     self.completion_keybind_input.setText(key)
-
-                self.save_keybinds_to_file()  # Save keybinds after setting
+                
+                # save the keybinds to file
+                # self.saved_settings.keybinds = self.settings.keybinds
+                # save_settings(self.saved_settings.settings_dict)
 
                 # Reset the button color
                 button.setStyleSheet("")
@@ -558,17 +578,19 @@ class SettingsWindow(QDialog):
 
     def revert_to_default_keybinds(self):
         """Revert to default keybinds and update UI."""
-        self.keybinds = DEFAULT_KEYBINDS.copy()
-        self.prompt_keybind_input.setText(self.keybinds["prompt"])
-        self.completion_keybind_input.setText(self.keybinds["completion"])
-        self.save_keybinds_to_file()
+        self.settings.keybinds = DEFAULT_SETTINGS["keybinds"].copy()
+        self.saved_settings.keybinds = DEFAULT_SETTINGS["keybinds"].copy()
+        save_settings(self.saved_settings.settings_dict)
+        self.prompt_keybind_input.setText(self.settings.keybinds["prompt"])
+        self.completion_keybind_input.setText(self.settings.keybinds["completion"])
+        # save_settings(self.settings.settings_dict)
         QMessageBox.information(self, "Info", "Keybinds reverted to default!")
 
     def on_model_selection_changed(self):
         """Save the selected model when the selection changes."""
         model_id = self.model_combo_box.currentText()
-        save_selected_model(model_id)
-
+        self.settings.model = model_id
+        
     def on_temperature_changed(self):
         """Update temperature label when the slider value changes."""
         temperature = self.temperature_slider.value() / 10.0
@@ -609,7 +631,11 @@ class SettingsWindow(QDialog):
 
     def revert_to_default_settings(self):
         """Revert all settings to default values."""
-        self.settings = DEFAULT_SETTINGS.copy()
+        self.settings = self.Settings(DEFAULT_SETTINGS.copy())
+        self.model_combo_box.setCurrentIndex(model_ids.index(self.settings["model"]))
+        self.custom_instructions_text.setPlainText(self.settings.custom_instructions)
+        self.completion_keybind_input.setText(self.settings.keybinds["completion"])
+        self.prompt_keybind_input.setText(self.settings.keybinds["prompt"])
         self.temperature_slider.setValue(int(self.settings['temperature'] * 10))
         self.temperature_label.setText(f"Temperature: {self.settings['temperature']}")
         self.max_tokens_input.setText(str(self.settings['max_tokens']))
@@ -622,20 +648,25 @@ class SettingsWindow(QDialog):
         self.tts_rate_label.setText(f"TTS Rate: {self.settings['tts_rate']}")
         QMessageBox.information(self, "Info", "Settings reverted to default!")
 
-    def save_additional_settings(self):
-        """Save temperature, max_tokens, auto-type, letter by letter, typing speed, and TTS settings."""
+    def save_settings(self):
         try:
+            # all other settings, when the buttons or sliders are interacted with, are written to the self.settings object. 
+            # Need to catch the ones that don't have these on edit events here.
+            self.settings['custom_instructions'] = self.custom_instructions_text.toPlainText()
             self.settings['max_tokens'] = int(self.max_tokens_input.text())
             self.settings['play_tts'] = self.play_tts_checkbox.isChecked()
             # TTS rate is already updated via on_tts_rate_changed
-            save_settings(self.settings)
+            self.saved_settings = self.Settings(self.settings.settings_dict)
+            # save the settings to the file
+            save_settings(self.saved_settings.settings_dict)
             QMessageBox.information(self, "Success", "Settings saved successfully!")
         except ValueError:
             QMessageBox.warning(self, "Error", "Max tokens must be an integer!")
 
-
     def save_custom_instructions(self):
         """Save the custom instructions entered by the user."""
         instructions = self.custom_instructions_text.toPlainText()
-        save_custom_instructions(instructions)
+        self.settings.custom_instructions = instructions
+        self.saved_settings.custom_instructions = instructions
+        save_settings(self.saved_settings.settings_dict)
         QMessageBox.information(self, "Success", "Custom instructions saved successfully!")

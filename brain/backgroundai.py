@@ -5,8 +5,7 @@ import time
 import threading
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtGui import QIcon
-from menu import (SettingsWindow, load_or_create_api_key, load_or_create_keybinds,
-                  load_selected_model, load_settings, load_custom_instructions)
+from menu import (SettingsWindow, load_or_create_api_key, load_settings)
 import sys
 import ctypes
 from ctypes import wintypes
@@ -63,9 +62,9 @@ typing_stop_event = threading.Event()
 tts_stop_event = threading.Event()
 
 # Global variables to hold settings
-keybinds = load_or_create_keybinds()
 settings = load_settings()
-custom_instructions = load_custom_instructions()
+keybinds = settings["keybinds"]
+custom_instructions = settings["custom_instructions"]
 
 # Define constants for mutex
 CREATE_MUTEX = 0x00000001
@@ -147,14 +146,12 @@ def capture_input():
 
 def stream_openai_completion(prompt:str):
     try:
-        # Load the selected model
-        model_id = load_selected_model()
         # Load settings
         current_settings = load_settings()
         temperature = current_settings.get('temperature', 1.0)
         max_tokens = current_settings.get('max_tokens', 256)
-        # Load custom instructions
-        custom_instructions = load_custom_instructions()
+        model_id = current_settings['model']
+        custom_instructions = current_settings['custom_instructions']
 
         # Prepare the prompt or messages
         if is_chat_model(model_id):
@@ -415,9 +412,9 @@ def background_task() -> None:
 def reload_settings():
     """Reload keybinds, settings, and custom instructions after settings are updated."""
     global keybinds, settings, custom_instructions
-    keybinds = load_or_create_keybinds()
     settings = load_settings()
-    custom_instructions = load_custom_instructions()
+    keybinds = settings['keybinds']
+    custom_instructions = settings['custom_instructions']
     print("Settings reloaded:", keybinds, settings)
 
 
