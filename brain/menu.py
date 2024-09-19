@@ -223,11 +223,11 @@ class SettingsWindow(QDialog):
         @property
         def settings_dict(self): return self._settings_dict.copy()
 
-    def __init__(self, pause_event_flag:Event) -> None:
+    def __init__(self) -> None:
         super().__init__()
         settings_dict = load_settings()
-        self.settings = self.Settings(settings_dict)
-        self.saved_settings = self.Settings(settings_dict)
+        self.settings = self.Settings(settings_dict.copy())
+        self.saved_settings = self.Settings(settings_dict.copy())
 
         self.setWindowTitle("KeyGenie Menu")
         # Set the window icon
@@ -243,7 +243,6 @@ class SettingsWindow(QDialog):
 
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-        self.pause_event = pause_event_flag
 
         self.load_custom_fonts()
 
@@ -588,19 +587,29 @@ class SettingsWindow(QDialog):
 
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         """
-        The PyQt5 main event loop runs this method when the red X has been clicked on the settings menu. To wrap up the setting menu, it does the following:
-        \n\n Sets the pause_event threading.Event flag to True, allowing the background process that listens to keyboard strokes to continue. 
-        \n\n Runs backgroundai.reload_settings() in order to change the global variables appropriately such that setting changes take place
+        The PyQt5 main event loop runs this method when the red X has been clicked on the settings menu. 
+        \n\n if the settings are not saved, ask the user if they want to save before exiting the settings menu. It handles this as you'd expect.
         \n\n Removes the instance of the SettingsWindow with self.close(), such that the window is removed. 
         """
         if self.saved_settings.settings_dict != self.settings.settings_dict:
             # ask user if they want to save before exiting settings, as they have unsaved changes.
-            print('should as user if they want to save currently unsaved changes.')
-            pass
-
-        import backgroundai
-        self.pause_event.set()
-        backgroundai.reload_settings()
+            print('should ask user if they want to save currently unsaved changes.')
+            ask_to_save_QDialog = QMessageBox(self)
+            # ask_to_save_QDialog.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), 16))  # Bold + bigger  
+            ask_to_save_QDialog.setText("The document has been modified.")
+            ask_to_save_QDialog.setInformativeText("Do you want to save your changes?")
+            ask_to_save_QDialog.setStandardButtons(QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
+            ask_to_save_QDialog.setDefaultButton(QMessageBox.StandardButton.Save)
+            ret = ask_to_save_QDialog.exec()
+            if ret == QMessageBox.StandardButton.Save:
+                self.save_settings()
+            elif ret == QMessageBox.StandardButton.Discard:
+                # do nothing, therefore not saving the unsaved data. 
+                pass
+            elif ret == QMessageBox.StandardButton.Cancel:
+                # Stop the exiting from occuring
+                a0.ignore()
+                return
         self.close()
 
     def load_api_key(self) -> None:

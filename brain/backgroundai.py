@@ -422,11 +422,11 @@ def open_menu():
     """Function to open the PyQt5 menu and pause the background task.
     \n\n The menu closing method closeEvent(event) sets the flag for the background task to continue"""
     pause_event.clear()  # Pause the background task
-    window = SettingsWindow(pause_event)
+    window = SettingsWindow()
     window.show()
-    # reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
-    # reload settings is instead called in the CloseEvent function of the settings menu class.
-
+    window.exec()
+    reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
+    pause_event.set()
 
 
 if __name__ == "__main__":
