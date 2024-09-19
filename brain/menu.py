@@ -112,15 +112,26 @@ def disable_startup():
         QMessageBox.warning(None, "Already Disabled", "The application is not set to run at startup.")
 
     
-def make_bold(font: QFont, size: int = 12) -> QFont:
+def make_bold(font: QFont, percentage: float, screen_height: int) -> QFont:
+    calculated_size = int(screen_height * (percentage / 100))
     font.setWeight(QFont.Bold)
-    font.setPointSize(size)  # Set a larger font size
+    font.setPointSize(calculated_size)  # Set a larger font size based on percentage
     return font
 
-def make_normal(font: QFont, size: int = 12) -> QFont:
-    font.setPointSize(size)  # Set a larger font size
+def make_normal(font: QFont, percentage: float, screen_height: int) -> QFont:
+    calculated_size = int(screen_height * (percentage / 100))
+    font.setPointSize(calculated_size)  # Set a larger font size based on percentage
     return font
 
+# Subclass QComboBox and override wheelEvent
+class NoScrollComboBox(QComboBox):
+    def wheelEvent(self, event):
+        event.ignore()  # Ignore the wheel event
+
+# Subclass QSlider and override wheelEvent
+class NoScrollSlider(QSlider):
+    def wheelEvent(self, event):
+        event.ignore()  # Ignore the wheel event
 
 def load_settings() -> dict[str:float|int|bool|str]:
     """Load settings from file or use default settings."""
@@ -170,6 +181,7 @@ class SettingsWindow(QDialog):
 
     def __init__(self) -> None:
         super().__init__()
+
         settings_dict = load_settings()
         self.settings = self.Settings(copy.deepcopy(settings_dict))
         self.saved_settings = self.Settings(copy.deepcopy(settings_dict))
@@ -252,13 +264,19 @@ class SettingsWindow(QDialog):
         # Increase overall font size
         bold_font_size = 16    # Medium-large size for section headings 
         normal_font_size = 14  # Normal size for text fields, buttons, etc.
+
+        title_font_percentage = 2.4   # 3% of screen height for titles
+        section_font_percentage = 1.2  # 2% for section headers
+        normal_font_percentage = 1   # 1.5% for normal text
+        screen = QApplication.desktop().screenGeometry()
+        screen_height = screen.height()
         
         # Create a horizontal layout for the title and image
         title_image_layout = QHBoxLayout()
 
         # Add the title "Key" first, then the image to the right
         self.title_label = QLabel("Key ", self)
-        self.title_label.setFont(QFont(self.rowdies_font.family(), 26))  # Example for larger title font size
+        self.title_label.setFont(make_bold(QFont(self.rowdies_font.family()), title_font_percentage, screen_height))  # Example for larger title font size
         self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
         title_image_layout.addWidget(self.title_label)
 
@@ -292,7 +310,7 @@ class SettingsWindow(QDialog):
         title_image_layout.addWidget(self.image_label)
 
         self.title_label = QLabel(" Genie", self)
-        self.title_label.setFont(QFont(self.rowdies_font.family(), 26))  # Example for larger title font size
+        self.title_label.setFont(make_bold(QFont(self.rowdies_font.family()), title_font_percentage, screen_height))  # Example for larger title font size
         self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
         title_image_layout.addWidget(self.title_label)
 
@@ -315,18 +333,18 @@ class SettingsWindow(QDialog):
         api_key_layout = QHBoxLayout()  # Create a horizontal layout for the API Key section
 
         self.api_key_label = QLabel("API Key:")
-        self.api_key_label.setFont(make_bold(QFont(self.noto_sans_font.family()), bold_font_size))  # Bold + bigger
+        self.api_key_label.setFont(make_bold(QFont(self.noto_sans_font.family()), section_font_percentage, screen_height))  # Bold + bigger
         content_layout.addWidget(self.api_key_label)
 
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("Get one at platform.openai.com/api-keys")
         self.api_key_input.setEchoMode(QLineEdit.Password)  # Hide API key by default
-        self.api_key_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.api_key_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         api_key_layout.addWidget(self.api_key_input)
 
         # Show/Hide button next to the API key input
         self.toggle_api_key_button = QPushButton("Show")
-        self.toggle_api_key_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.toggle_api_key_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.toggle_api_key_button.setFixedWidth(100)  # Set a fixed width for the button
         self.toggle_api_key_button.clicked.connect(self.toggle_api_key_visibility)
         api_key_layout.addWidget(self.toggle_api_key_button)
@@ -336,7 +354,7 @@ class SettingsWindow(QDialog):
 
         # Save button for API key (this stays on a new line)
         self.save_api_button = QPushButton("Save API Key")
-        self.save_api_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.save_api_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.save_api_button.clicked.connect(self.save_api_key)
         content_layout.addWidget(self.save_api_button)
 
@@ -345,57 +363,60 @@ class SettingsWindow(QDialog):
         
         # 2. Model Selection Section
         self.model_label = QLabel("Model Selection:")
-        self.model_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger
+        self.model_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage, screen_height))  # Bold + bigger
         content_layout.addWidget(self.model_label)
-        
-        self.model_combo_box = QComboBox()
-        self.model_combo_box.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Bigger combo box text
+
+        # Use NoScrollComboBox to prevent scroll wheel interaction
+        self.model_combo_box = NoScrollComboBox()  # Replace QComboBox with NoScrollComboBox
+        self.model_combo_box.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage, screen_height))  # Bigger combo box text
         self.model_combo_box.addItems(model_ids)
         content_layout.addWidget(self.model_combo_box)
+
         selected_model = self.settings.model
         if selected_model in model_ids:
             index = model_ids.index(selected_model)
             self.model_combo_box.setCurrentIndex(index)
         else:
             self.model_combo_box.setCurrentIndex(0)
-        
+
         self.model_combo_box.currentIndexChanged.connect(self.on_model_selection_changed)
+
         
         # 3. Custom Instructions Section
         self.custom_instructions_label = QLabel("Custom Instructions:")
-        self.custom_instructions_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger
+        self.custom_instructions_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger
         content_layout.addWidget(self.custom_instructions_label)
         
         self.custom_instructions_text = QTextEdit()
         self.custom_instructions_text.setPlaceholderText("Enter custom instructions for the AI here...")
         self.custom_instructions_text.setPlainText(self.settings.custom_instructions)
-        self.custom_instructions_text.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.custom_instructions_text.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         content_layout.addWidget(self.custom_instructions_text)
         self.custom_instructions_text.textChanged.connect(self.on_instructions_text_changed)
         
         self.save_instructions_button = QPushButton("Save Instructions")
-        self.save_instructions_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.save_instructions_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.save_instructions_button.clicked.connect(self.save_custom_instructions)
         content_layout.addWidget(self.save_instructions_button)
         
         # 4. Keybinds Section
         self.keybinds_label = QLabel("Keybinds:")
-        self.keybinds_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger  
+        self.keybinds_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger  
         content_layout.addWidget(self.keybinds_label)
 
         # Prompt Keybind Layout (Text field and button on the same line)
         prompt_keybind_layout = QHBoxLayout()
         self.prompt_keybind_label = QLabel("Prompt Keybind:")
-        self.prompt_keybind_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.prompt_keybind_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage, screen_height))  # Normal + bigger
         prompt_keybind_layout.addWidget(self.prompt_keybind_label)
 
         self.prompt_keybind_input = QLineEdit()
-        self.prompt_keybind_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Bigger input field
+        self.prompt_keybind_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Bigger input field
         self.prompt_keybind_input.setReadOnly(True)
         prompt_keybind_layout.addWidget(self.prompt_keybind_input)
 
         self.prompt_keybind_button = QPushButton("Set")
-        self.prompt_keybind_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Bigger button text
+        self.prompt_keybind_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Bigger button text
         self.prompt_keybind_button.setFixedWidth(150)  # Set a fixed width to make the button smaller
         self.prompt_keybind_button.clicked.connect(lambda: self.select_keybind("prompt", self.prompt_keybind_button))
         prompt_keybind_layout.addWidget(self.prompt_keybind_button)
@@ -405,16 +426,16 @@ class SettingsWindow(QDialog):
         # Completion Keybind Layout (Text field and button on the same line)
         completion_keybind_layout = QHBoxLayout()
         self.completion_keybind_label = QLabel("Completion Keybind:")
-        self.completion_keybind_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.completion_keybind_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         completion_keybind_layout.addWidget(self.completion_keybind_label)
 
         self.completion_keybind_input = QLineEdit()
-        self.completion_keybind_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.completion_keybind_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.completion_keybind_input.setReadOnly(True)
         completion_keybind_layout.addWidget(self.completion_keybind_input)
 
         self.completion_keybind_button = QPushButton("Set")
-        self.completion_keybind_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.completion_keybind_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.completion_keybind_button.setFixedWidth(150)  # Set a fixed width to make the button smaller
         self.completion_keybind_button.clicked.connect(lambda: self.select_keybind("completion", self.completion_keybind_button))
         completion_keybind_layout.addWidget(self.completion_keybind_button)
@@ -422,7 +443,7 @@ class SettingsWindow(QDialog):
         content_layout.addLayout(completion_keybind_layout)
 
         self.revert_keybinds_button = QPushButton("Revert to Default Keybinds")
-        self.revert_keybinds_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.revert_keybinds_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.revert_keybinds_button.clicked.connect(self.revert_to_default_keybinds)
         content_layout.addWidget(self.revert_keybinds_button)
 
@@ -432,16 +453,16 @@ class SettingsWindow(QDialog):
         
         # 5. Additional Settings (Temperature, Max Tokens, Typing, TTS)
         self.settings_label = QLabel("Additional Settings:")
-        self.settings_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger  
+        self.settings_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger  
         content_layout.addWidget(self.settings_label)
         
         # Temperature Slider
         temp_layout = QHBoxLayout()
         self.temperature_label = QLabel(f"Temperature: {self.settings['temperature']}")
-        self.temperature_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.temperature_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         temp_layout.addWidget(self.temperature_label)
         
-        self.temperature_slider = QSlider(Qt.Horizontal)
+        self.temperature_slider = NoScrollSlider(Qt.Horizontal)
         self.temperature_slider.setMinimum(0)
         self.temperature_slider.setMaximum(20)  # Slider steps from 0 to 20 representing 0.0 to 2.0
         self.temperature_slider.setValue(int(self.settings['temperature'] * 10))
@@ -452,11 +473,11 @@ class SettingsWindow(QDialog):
         # Max Tokens Input
         max_tokens_layout = QHBoxLayout()
         self.max_tokens_label = QLabel("Max Completion Tokens:")
-        self.max_tokens_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.max_tokens_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         max_tokens_layout.addWidget(self.max_tokens_label)
         
         self.max_tokens_input = QLineEdit(str(self.settings['max_tokens']))
-        self.max_tokens_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.max_tokens_input.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         max_tokens_layout.addWidget(self.max_tokens_input)
         content_layout.addLayout(max_tokens_layout)
         
@@ -464,21 +485,21 @@ class SettingsWindow(QDialog):
         self.auto_type_checkbox = QCheckBox("Auto-Type")
         self.auto_type_checkbox.setChecked(self.settings['auto_type'])
         self.auto_type_checkbox.stateChanged.connect(self.on_auto_type_changed)
-        self.auto_type_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.auto_type_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         content_layout.addWidget(self.auto_type_checkbox)
         
         # Typing Speed Slider
         self.typing_speed_layout = QHBoxLayout()
         self.typing_speed_label = QLabel(f"Typing Speed: {self.settings['typing_speed_wpm']} WPM")
-        self.typing_speed_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.typing_speed_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.typing_speed_layout.addWidget(self.typing_speed_label)
         
-        self.typing_speed_slider = QSlider(Qt.Horizontal)
+        self.typing_speed_slider = NoScrollSlider(Qt.Horizontal)
         self.typing_speed_slider.setMinimum(10)
         self.typing_speed_slider.setMaximum(1000)
         self.typing_speed_slider.setValue(self.settings['typing_speed_wpm'])
         self.typing_speed_slider.valueChanged.connect(self.on_typing_speed_changed)
-        self.typing_speed_slider.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.typing_speed_slider.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.typing_speed_layout.addWidget(self.typing_speed_slider)
         content_layout.addLayout(self.typing_speed_layout)
         
@@ -486,12 +507,12 @@ class SettingsWindow(QDialog):
         self.letter_by_letter_checkbox = QCheckBox("Letter by Letter Typing")
         self.letter_by_letter_checkbox.setChecked(self.settings['letter_by_letter'])
         self.letter_by_letter_checkbox.stateChanged.connect(self.on_letter_by_letter_changed)
-        self.letter_by_letter_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.letter_by_letter_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         content_layout.addWidget(self.letter_by_letter_checkbox)
         
         # Play TTS Checkbox
         self.play_tts_checkbox = QCheckBox("Play TTS")
-        self.play_tts_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.play_tts_checkbox.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.play_tts_checkbox.setChecked(self.settings['play_tts'])
         self.play_tts_checkbox.stateChanged.connect(self.on_play_tts_changed)
         content_layout.addWidget(self.play_tts_checkbox)
@@ -499,10 +520,10 @@ class SettingsWindow(QDialog):
         # TTS Rate Slider (initially hidden)
         self.tts_rate_layout = QHBoxLayout()
         self.tts_rate_label = QLabel(f"TTS Rate: {self.settings['tts_rate']}")
-        self.tts_rate_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.tts_rate_label.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.tts_rate_layout.addWidget(self.tts_rate_label)
         
-        self.tts_rate_slider = QSlider(Qt.Horizontal)
+        self.tts_rate_slider = NoScrollSlider(Qt.Horizontal)
         self.tts_rate_slider.setMinimum(-10)
         self.tts_rate_slider.setMaximum(10)
         self.tts_rate_slider.setValue(self.settings['tts_rate'])
@@ -517,12 +538,12 @@ class SettingsWindow(QDialog):
         startup_buttons_layout = QHBoxLayout()
         
         self.enable_startup_button = QPushButton("Enable from Startup")
-        self.enable_startup_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.enable_startup_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.enable_startup_button.clicked.connect(enable_startup)
         startup_buttons_layout.addWidget(self.enable_startup_button)
         
         self.disable_startup_button = QPushButton("Disable from Startup")
-        self.disable_startup_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
+        self.disable_startup_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_percentage,screen_height))  # Normal + bigger
         self.disable_startup_button.clicked.connect(disable_startup)
         startup_buttons_layout.addWidget(self.disable_startup_button)
         
@@ -530,12 +551,12 @@ class SettingsWindow(QDialog):
         
         # 7. Save and Revert Buttons
         self.save_settings_button = QPushButton("Save Settings")
-        self.save_settings_button.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger  
+        self.save_settings_button.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger  
         self.save_settings_button.clicked.connect(self.save_settings)
         content_layout.addWidget(self.save_settings_button)
         
         self.revert_settings_button = QPushButton("Revert to Default Settings")
-        self.revert_settings_button.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), bold_font_size))  # Bold + bigger  
+        self.revert_settings_button.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger  
         self.revert_settings_button.clicked.connect(self.revert_to_default_settings)
         content_layout.addWidget(self.revert_settings_button)
         
