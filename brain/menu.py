@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import json
+import ctypes
 from threading import Event
 from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap, QFont, QPainter, QColor, QFont, QFontDatabase
 import keyboard
@@ -239,9 +240,21 @@ class SettingsWindow(QDialog):
         else:
             print(f"Icon file not found at {icon_path}")
 
-        self.setGeometry(0, 0, 700, 1360)
+        # Get Screensize
+        user32 = ctypes.windll.user32
+        screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        # Adaptive menu placement according to computer specs
+        menuPlacement = (int(user32.GetSystemMetrics(0)*0.03),
+                        int(user32.GetSystemMetrics(1)*0.03),
+                        int(user32.GetSystemMetrics(0)*0.25),
+                        int(user32.GetSystemMetrics(1)*0.8))
+        # Sets window size and position relative to monitor size
+        self.setGeometry(*menuPlacement)
 
+        # Removes question mark next to quit button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
 
         self.pause_event = pause_event_flag
 
