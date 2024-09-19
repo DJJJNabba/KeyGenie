@@ -3,6 +3,7 @@ import shutil
 import sys
 import json
 import ctypes
+import copy
 from threading import Event
 from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap, QFont, QPainter, QColor, QFont, QFontDatabase
 import keyboard
@@ -170,8 +171,8 @@ class SettingsWindow(QDialog):
     def __init__(self) -> None:
         super().__init__()
         settings_dict = load_settings()
-        self.settings = self.Settings(settings_dict.copy())
-        self.saved_settings = self.Settings(settings_dict.copy())
+        self.settings = self.Settings(copy.deepcopy(settings_dict))
+        self.saved_settings = self.Settings(copy.deepcopy(settings_dict))
 
         self.setWindowTitle("KeyGenie Menu")
         # Set the window icon
@@ -370,6 +371,7 @@ class SettingsWindow(QDialog):
         self.custom_instructions_text.setPlainText(self.settings.custom_instructions)
         self.custom_instructions_text.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
         content_layout.addWidget(self.custom_instructions_text)
+        self.custom_instructions_text.textChanged.connect(self.on_instructions_text_changed)
         
         self.save_instructions_button = QPushButton("Save Instructions")
         self.save_instructions_button.setFont(make_normal(QFont(self.noto_sans_font.family()), normal_font_size))  # Normal + bigger
@@ -547,9 +549,14 @@ class SettingsWindow(QDialog):
         \n\n if the settings are not saved, ask the user if they want to save before exiting the settings menu. It handles this as you'd expect.
         \n\n Removes the instance of the SettingsWindow with self.close(), such that the window is removed. 
         """
+        self.settings['custom_instructions'] = self.custom_instructions_text.toPlainText()
+        self.settings['max_tokens'] = int(self.max_tokens_input.text())
+        self.settings['play_tts'] = self.play_tts_checkbox.isChecked()
+
         if self.saved_settings.settings_dict != self.settings.settings_dict:
             # ask user if they want to save before exiting settings, as they have unsaved changes.
             ask_to_save_QDialog = QMessageBox(self)
+            ask_to_save_QDialog.setWindowTitle("Unsaved Changes")
             ask_to_save_QDialog.setText("The document has been modified.")
             ask_to_save_QDialog.setInformativeText("Do you want to save your changes?")
             ask_to_save_QDialog.setStandardButtons(QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
@@ -632,6 +639,9 @@ class SettingsWindow(QDialog):
         self.completion_keybind_input.setText(self.settings.keybinds["completion"])
         # save_settings(self.settings.settings_dict)
         QMessageBox.information(self, "Info", "Keybinds reverted to default!")
+
+    def on_instructions_text_changed(self):
+        self.settings.custom_instructions = self.custom_instructions_text.toPlainText()
 
     def on_model_selection_changed(self):
         """Save the selected model when the selection changes."""
