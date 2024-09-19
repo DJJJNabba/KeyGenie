@@ -2,7 +2,7 @@ import os
 import shutil
 import sys
 from threading import Event
-from PyQt5.QtGui import QCloseEvent
+from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap, QFont, QPainter, QColor
 import keyboard
 from ctypes import wintypes
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QTextEdit, QPushButton,
@@ -177,8 +177,19 @@ def save_settings(settings:dict[str:int|bool]) -> None:
 class SettingsWindow(QDialog):
     def __init__(self, pause_event_flag:Event) -> None:
         super().__init__()
-        self.setWindowTitle("Settings Menu")
+        self.setWindowTitle("KeyGenie Menu")
+        # Set the window icon
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(script_directory, "write.png")  # Path to the new icon
+
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))  # Set window icon
+        else:
+            print(f"Icon file not found at {icon_path}")
+
         self.setGeometry(100, 100, 500, 600)
+
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         self.pause_event = pause_event_flag
         self.init_ui()
@@ -188,6 +199,50 @@ class SettingsWindow(QDialog):
     def init_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         
+        # Create a horizontal layout for the title and image
+        title_image_layout = QHBoxLayout()
+
+        # Add the title "KeyGenie" first, then the image to the right
+        self.title_label = QLabel("KeyGenie", self)
+        self.title_label.setFont(QFont('Arial', 20))  # Set font and size for the title
+        self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
+        title_image_layout.addWidget(self.title_label)
+
+        # Add the image (write.png) to the right of the text
+        self.image_label = QLabel(self)
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        image_path = os.path.join(script_directory, "write.png")
+
+        if os.path.exists(image_path):
+            pixmap = QPixmap(image_path)
+            
+            # Scale the image to make it smaller
+            scaled_pixmap = pixmap.scaled(30, 30, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            
+            # Apply a black color overlay using QPainter
+            black_pixmap = QPixmap(scaled_pixmap.size())
+            black_pixmap.fill(Qt.transparent)  # Make the background transparent
+            
+            painter = QPainter(black_pixmap)
+            painter.drawPixmap(0, 0, scaled_pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+            painter.fillRect(black_pixmap.rect(), QColor('black'))  # Apply black color overlay
+            painter.end()
+            
+            self.image_label.setPixmap(black_pixmap)
+        else:
+            self.image_label.setText("Image not found")  # Display text if the image is not found
+
+        # Align the image to the right and center it vertically with the text
+        self.image_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        title_image_layout.addWidget(self.image_label)
+
+        # Ensure title and image layout is centered horizontally
+        title_image_layout.setAlignment(Qt.AlignCenter)
+
+        # Add the title-image layout to the main layout
+        main_layout.addLayout(title_image_layout)
+
         # Create a scroll area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
