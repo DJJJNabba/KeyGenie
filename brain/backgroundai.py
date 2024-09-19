@@ -16,7 +16,7 @@ from queue import Queue, Empty
 
 
 class SystemTrayIcon(QSystemTrayIcon):
-    def __init__(self, app:QApplication):
+    def __init__(self, app: QApplication):
         super().__init__(app)
         script_directory = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(script_directory, "write.png")
@@ -27,7 +27,7 @@ class SystemTrayIcon(QSystemTrayIcon):
         # Create the menu
         self.menu = QMenu()
         self.open_settings_action = QAction("Open Settings")
-        self.open_settings_action.triggered.connect(open_menu)
+        self.open_settings_action.triggered.connect(self.open_menu)
         self.menu.addAction(self.open_settings_action)
 
         self.quit_action = QAction("Quit")
@@ -36,6 +36,23 @@ class SystemTrayIcon(QSystemTrayIcon):
 
         self.setContextMenu(self.menu)
         self.show()
+
+        # Connect the activated signal to handle icon clicks
+        self.activated.connect(self.on_icon_clicked)
+
+    def on_icon_clicked(self, reason):
+        """Handle system tray icon click events"""
+        if reason == QSystemTrayIcon.Trigger:  # Trigger is typically the left-click
+            self.open_menu()
+
+    def open_menu(self):
+        """Function to open the PyQt5 menu and pause the background task."""
+        pause_event.clear()  # Pause the background task
+        window = SettingsWindow()
+        window.show()
+        window.exec()
+        reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
+        pause_event.set()
 
 
 # Default keybinds
@@ -417,16 +434,6 @@ def reload_settings():
     custom_instructions = settings['custom_instructions']
     print("Settings reloaded:", keybinds, settings)
 
-
-def open_menu():
-    """Function to open the PyQt5 menu and pause the background task.
-    \n\n The menu closing method closeEvent(event) sets the flag for the background task to continue"""
-    pause_event.clear()  # Pause the background task
-    window = SettingsWindow()
-    window.show()
-    window.exec()
-    reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
-    pause_event.set()
 
 
 if __name__ == "__main__":
