@@ -14,10 +14,11 @@ import pythoncom
 
 from queue import Queue, Empty
 
-
 class SystemTrayIcon(QSystemTrayIcon):
     def __init__(self, app: QApplication):
         super().__init__(app)
+        self.settings_window = None  # Track the settings window instance
+
         script_directory = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(script_directory, "write.png")
         icon = QIcon(image_path) if os.path.exists(image_path) else app.style().standardIcon(QSystemTrayIcon.SP_ComputerIcon)
@@ -46,13 +47,22 @@ class SystemTrayIcon(QSystemTrayIcon):
             self.open_menu()
 
     def open_menu(self):
-        """Function to open the PyQt5 menu and pause the background task."""
-        pause_event.clear()  # Pause the background task
-        window = SettingsWindow()
-        window.show()
-        window.exec()
+        """Open the settings window or bring it to the front if already open."""
+        if self.settings_window is None or not self.settings_window.isVisible():  # Only open if not already open
+            pause_event.clear()  # Pause the background task
+            self.settings_window = SettingsWindow()  # Create the window instance
+            self.settings_window.show()
+            self.settings_window.finished.connect(self.on_settings_window_closed)  # Track window closing
+        else:
+            # Bring the window to the front if it's already open
+            self.settings_window.raise_()  # Bring the window to the front
+            self.settings_window.activateWindow()  # Activate/focus the window
+
+    def on_settings_window_closed(self):
+        """Reset the settings window tracking when it's closed."""
+        self.settings_window = None  # Set to None when window is closed
         reload_settings()  # Reload keybinds, settings, and custom instructions after the menu is closed
-        pause_event.set()
+        pause_event.set()  # Resume the background task
 
 
 # Default keybinds
