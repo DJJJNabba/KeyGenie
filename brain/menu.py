@@ -251,14 +251,14 @@ class SettingsWindow(QDialog):
         main_layout = QVBoxLayout(self)
 
         # Increase overall font size
-        bold_font_size = 16    # Medium-large size for section headings
+        bold_font_size = 16    # Medium-large size for section headings 
         normal_font_size = 14  # Normal size for text fields, buttons, etc.
         
         # Create a horizontal layout for the title and image
         title_image_layout = QHBoxLayout()
 
-        # Add the title "KeyGenie" first, then the image to the right
-        self.title_label = QLabel("KeyGenie", self)
+        # Add the title "Key" first, then the image to the right
+        self.title_label = QLabel("Key ", self)
         self.title_label.setFont(QFont(self.rowdies_font.family(), 26))  # Example for larger title font size
         self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
         title_image_layout.addWidget(self.title_label)
@@ -272,7 +272,7 @@ class SettingsWindow(QDialog):
             pixmap = QPixmap(image_path)
             
             # Scale the image to make it smaller
-            scaled_pixmap = pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            scaled_pixmap = pixmap.scaled(55, 55, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             
             # Apply a black color overlay using QPainter
             black_pixmap = QPixmap(scaled_pixmap.size())
@@ -291,6 +291,11 @@ class SettingsWindow(QDialog):
         # Align the image to the right and center it vertically with the text
         self.image_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         title_image_layout.addWidget(self.image_label)
+
+        self.title_label = QLabel(" Genie", self)
+        self.title_label.setFont(QFont(self.rowdies_font.family(), 26))  # Example for larger title font size
+        self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
+        title_image_layout.addWidget(self.title_label)
 
         # Ensure title and image layout is centered horizontally
         title_image_layout.setAlignment(Qt.AlignCenter)
