@@ -16,10 +16,7 @@ from win32com.client import Dispatch
 # File paths for saving settings
 PRIVATE_FOLDER = os.path.join(os.path.expanduser("~"), "privateVariables")
 API_KEY_FILE = os.path.join(PRIVATE_FOLDER, "apikey.txt")
-# KEYBINDS_FILE = os.path.join(PRIVATE_FOLDER, "keybinds.txt")
-# MODEL_FILE = os.path.join(PRIVATE_FOLDER, "model.txt")
 SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.json")
-# CUSTOM_INSTRUCTIONS_FILE = os.path.join(PRIVATE_FOLDER, "custom_instructions.txt")
 
 # Default keybinds and settings
 DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
@@ -83,45 +80,6 @@ def load_or_create_api_key() -> str:
             return api_key
     return ""
 
-
-# def load_or_create_keybinds() -> dict[str:str]:
-#     """Load or create keybinds.\n\nReturns the keybinds read from the file given by the KEYBINDS_FILE global variable's specified path.
-#     \n\nIf the PRIVATE_FOLDER global variable's path doesn't exist, function also creates the directory on top of other function.
-#     \n\nIf the path specified in the KEYBINDS_FILE global cannot be found by the program, returns a copy of the DEFAULT_KEYBINDS global variable."""
-#     if not os.path.exists(PRIVATE_FOLDER):
-#         os.makedirs(PRIVATE_FOLDER)
-
-#     if os.path.exists(KEYBINDS_FILE):
-#         with open(KEYBINDS_FILE, "r") as file:
-#             lines = file.readlines()
-#             keybinds = {line.split(":")[0]: line.split(":")[1].strip() for line in lines}
-#             return keybinds
-
-#     return DEFAULT_KEYBINDS.copy()
-
-
-# def save_keybinds(keybinds:dict[str:str]) -> None:
-#     """Save keybinds to a file.\n\n The file written to is determined by the KEYBINDS_FILE global variable"""
-#     with open(KEYBINDS_FILE, "w") as file:
-#         for action, key in keybinds.items():
-#             file.write(f"{action}: {key}\n")
-
-
-# def load_selected_model() -> str:
-#     """Load the selected model's id/name from file."""
-#     if os.path.exists(MODEL_FILE):
-#         with open(MODEL_FILE, "r") as file:
-#             model_id = file.read().strip()
-#         return model_id
-#     return DEFAULT_MODEL
-
-
-# def save_selected_model(model_id) -> None:
-#     """Save the selected model to file.\n\nThe file written to is specified by MODEL_FILE global variable"""
-#     with open(MODEL_FILE, "w") as file:
-#         file.write(model_id)
-
-
 def enable_startup() -> None:
     """Enable the app to run on startup by creating a shortcut."""
     script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -152,21 +110,6 @@ def disable_startup():
     else:
         QMessageBox.warning(None, "Already Disabled", "The application is not set to run at startup.")
 
-
-# def load_custom_instructions():
-#     """Load custom instructions from file."""
-#     if os.path.exists(CUSTOM_INSTRUCTIONS_FILE):
-#         with open(CUSTOM_INSTRUCTIONS_FILE, "r", encoding='utf-8') as file:
-#             instructions = file.read()
-#             return instructions
-#     else:
-#         return ""
-
-
-# def save_custom_instructions(instructions):
-#     """Save custom instructions to file."""
-#     with open(CUSTOM_INSTRUCTIONS_FILE, "w", encoding='utf-8') as file:
-#         file.write(instructions)
     
 def make_bold(font: QFont, size: int = 12) -> QFont:
     font.setWeight(QFont.Bold)
@@ -606,9 +549,7 @@ class SettingsWindow(QDialog):
         """
         if self.saved_settings.settings_dict != self.settings.settings_dict:
             # ask user if they want to save before exiting settings, as they have unsaved changes.
-            print('should ask user if they want to save currently unsaved changes.')
             ask_to_save_QDialog = QMessageBox(self)
-            # ask_to_save_QDialog.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), 16))  # Bold + bigger  
             ask_to_save_QDialog.setText("The document has been modified.")
             ask_to_save_QDialog.setInformativeText("Do you want to save your changes?")
             ask_to_save_QDialog.setStandardButtons(QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
@@ -651,15 +592,6 @@ class SettingsWindow(QDialog):
             self.toggle_api_key_button.setText("Hide")
         self.api_key_visible = not self.api_key_visible
 
-    # def load_keybinds(self) -> None:
-    #     """uses load_or_create_keybinds() to set SettingsWindow.keybinds, and adds the keybinds to the menu text"""
-    #     self.keybinds = load_or_create_keybinds()
-    #     self.prompt_keybind_input.setText(self.keybinds["prompt"])
-    #     self.completion_keybind_input.setText(self.keybinds["completion"])
-
-    # def save_keybinds_to_file(self):
-    #     """clone of running save_keybinds() on SettingsWindow.keybinds"""
-    #     return save_keybinds(self.keybinds)
 
     def select_keybind(self, action, button) -> None:
         """Change the button color and wait for key input."""
