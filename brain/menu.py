@@ -102,7 +102,6 @@ def enable_startup() -> None:
 
     QMessageBox.information(None, "Startup Enabled", "The application is now set to run at startup.")
 
-
 def disable_startup():
     """Disable the app from running on startup by removing the shortcut."""
     if os.path.exists(STARTUP_SHORTCUT_PATH):
@@ -212,7 +211,6 @@ class SettingsWindow(QDialog):
         self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
         self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
 
-
         self.load_custom_fonts()
 
         self.init_ui()
@@ -256,14 +254,8 @@ class SettingsWindow(QDialog):
         else:
             print(f"NotoSans font not found at {noto_sans_path}")
     
-    
-
     def init_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-
-        # Increase overall font size
-        bold_font_size = 16    # Medium-large size for section headings 
-        normal_font_size = 14  # Normal size for text fields, buttons, etc.
 
         title_font_percentage = 2.4   # 3% of screen height for titles
         section_font_percentage = 1.2  # 2% for section headers
@@ -276,7 +268,7 @@ class SettingsWindow(QDialog):
 
         # Add the title "Key" first, then the image to the right
         self.title_label = QLabel("Key ", self)
-        self.title_label.setFont(make_bold(QFont(self.rowdies_font.family()), title_font_percentage, screen_height))  # Example for larger title font size
+        self.title_label.setFont(make_bold(QFont(self.rowdies_font.family()), title_font_percentage, screen_height))
         self.title_label.setAlignment(Qt.AlignLeft)  # Align the text to the left
         title_image_layout.addWidget(self.title_label)
 
@@ -381,7 +373,6 @@ class SettingsWindow(QDialog):
 
         self.model_combo_box.currentIndexChanged.connect(self.on_model_selection_changed)
 
-        
         # 3. Custom Instructions Section
         self.custom_instructions_label = QLabel("Custom Instructions:")
         self.custom_instructions_label.setFont(make_bold(QFont(self.ubuntu_bold_font.family()), section_font_percentage,screen_height))  # Bold + bigger
