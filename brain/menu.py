@@ -196,7 +196,7 @@ class SettingsWindow(QDialog):
         else:
             print(f"Icon file not found at {icon_path}")
 
-        self.setGeometry(30, 20, 700, 1300)
+        self.setGeometry(0, 0, 700, 1360)
 
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
