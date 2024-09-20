@@ -21,21 +21,7 @@ SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.json")
 
 # Default keybinds and settings
 DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
-DEFAULT_SETTINGS = {
-    "temperature": 1.0,
-    "max_tokens": 256,
-    "auto_type": True,
-    "typing_speed_wpm": 200,
-    "letter_by_letter": True,  # Default to letter-by-letter typing
-    "play_tts": False,         # Default to not playing TTS
-    "tts_rate": 0,             # Default TTS rate
-    "model": "gpt-4o-mini-2024-07-18",
-    "keybinds" : {
-        "prompt" : "right shift",
-        "completion" : "right ctrl",
-    },
-    "custom_instructions": "",
-}
+with open("defaultSettings.json", "r") as file: DEFAULT_SETTINGS = json.load(file)
 
 # Startup shortcut paths
 APPDATA_FOLDER = os.getenv('APPDATA')

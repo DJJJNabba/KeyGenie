@@ -1,0 +1,15 @@
+{
+    "temperature": 1.0,
+    "max_tokens": 256,
+    "auto_type": true,
+    "typing_speed_wpm": 200,
+    "letter_by_letter": true,
+    "play_tts": false,
+    "tts_rate": 0,
+    "model": "gpt-4o-mini-2024-07-18",
+    "keybinds" : {
+        "prompt" : "right shift",
+        "completion" : "right ctrl"
+    },
+    "custom_instructions": ""
+}

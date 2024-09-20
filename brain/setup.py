@@ -5,6 +5,7 @@ import subprocess
 import importlib.util
 import ctypes
 from ctypes import wintypes
+import json
 
 # Define required modules for backgroundai.py
 required_modules = [
@@ -130,10 +131,10 @@ else:
 # Define the paths for the private variables and files
 PRIVATE_FOLDER = os.path.join(os.path.expanduser("~"), "privateVariables")
 API_KEY_FILE = os.path.join(PRIVATE_FOLDER, "apikey.txt")
-KEYBINDS_FILE = os.path.join(PRIVATE_FOLDER, "keybinds.txt")
-MODEL_FILE = os.path.join(PRIVATE_FOLDER, "model.txt")
-SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.txt")
-CUSTOM_INSTRUCTIONS_FILE = os.path.join(PRIVATE_FOLDER, "custom_instructions.txt")
+# KEYBINDS_FILE = os.path.join(PRIVATE_FOLDER, "keybinds.txt")
+# MODEL_FILE = os.path.join(PRIVATE_FOLDER, "model.txt")
+SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.json")
+# CUSTOM_INSTRUCTIONS_FILE = os.path.join(PRIVATE_FOLDER, "custom_instructions.txt")
 
 # Default values
 DEFAULT_KEYBINDS = {
@@ -142,16 +143,7 @@ DEFAULT_KEYBINDS = {
 }
 
 DEFAULT_MODEL = "gpt-3.5-turbo"
-
-DEFAULT_SETTINGS = {
-    "temperature": 1.0,
-    "max_tokens": 256,
-    "auto_type": True,
-    "typing_speed_wpm": 350,
-    "letter_by_letter": True,
-    "play_tts": True,
-    "tts_rate": 4
-}
+with open("defaultSettings.json", "r") as file: DEFAULT_SETTINGS = json.load(file)
 
 # Ensure the private variables folder exists
 if not os.path.exists(PRIVATE_FOLDER):
@@ -164,31 +156,11 @@ if not os.path.exists(API_KEY_FILE):
         f.write('')
     print(f"Created API key file at {API_KEY_FILE}")
 
-# Ensure KEYBINDS_FILE exists
-if not os.path.exists(KEYBINDS_FILE):
-    with open(KEYBINDS_FILE, 'w') as f:
-        for action, key in DEFAULT_KEYBINDS.items():
-            f.write(f"{action}: {key}\n")
-    print(f"Created keybinds file at {KEYBINDS_FILE}")
-
-# Ensure MODEL_FILE exists
-if not os.path.exists(MODEL_FILE):
-    with open(MODEL_FILE, 'w') as f:
-        f.write(DEFAULT_MODEL)
-    print(f"Created model file at {MODEL_FILE}")
-
 # Ensure SETTINGS_FILE exists
 if not os.path.exists(SETTINGS_FILE):
     with open(SETTINGS_FILE, 'w') as f:
-        for key, value in DEFAULT_SETTINGS.items():
-            f.write(f"{key}:{value}\n")
+        json.dump(DEFAULT_SETTINGS,file)
     print(f"Created settings file at {SETTINGS_FILE}")
-
-# Ensure CUSTOM_INSTRUCTIONS_FILE exists
-if not os.path.exists(CUSTOM_INSTRUCTIONS_FILE):
-    with open(CUSTOM_INSTRUCTIONS_FILE, 'w', encoding='utf-8') as f:
-        f.write('')
-    print(f"Created custom instructions file at {CUSTOM_INSTRUCTIONS_FILE}")
 
 # ----------------------------------------------------------------------
 
