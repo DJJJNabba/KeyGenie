@@ -21,7 +21,7 @@ SETTINGS_FILE = os.path.join(PRIVATE_FOLDER, "settings.json")
 
 # Default keybinds and settings
 DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
-with open("defaultSettings.json", "r") as file: DEFAULT_SETTINGS = json.load(file)
+with open(os.path.join("brain","defaultSettings.json"), "r") as file: DEFAULT_SETTINGS = json.load(file)
 
 # Startup shortcut paths
 APPDATA_FOLDER = os.getenv('APPDATA')

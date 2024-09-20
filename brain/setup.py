@@ -15,6 +15,7 @@ required_modules = [
     "Pillow",   # for handling images
     "PyQt5",    # for GUI (Qt-based settings menu)
     "pywin32",  # Includes win32com.client and pythoncom for Windows API usage
+    "pywintypes"
 ]
 
 # Install required modules if they are not already installed
@@ -143,7 +144,7 @@ DEFAULT_KEYBINDS = {
 }
 
 DEFAULT_MODEL = "gpt-3.5-turbo"
-with open("defaultSettings.json", "r") as file: DEFAULT_SETTINGS = json.load(file)
+with open(os.path.join("brain","defaultSettings.json"), "r") as file: DEFAULT_SETTINGS = json.load(file)
 
 # Ensure the private variables folder exists
 if not os.path.exists(PRIVATE_FOLDER):
@@ -158,7 +159,7 @@ if not os.path.exists(API_KEY_FILE):
 
 # Ensure SETTINGS_FILE exists
 if not os.path.exists(SETTINGS_FILE):
-    with open(SETTINGS_FILE, 'w') as f:
+    with open(SETTINGS_FILE, 'w') as file:
         json.dump(DEFAULT_SETTINGS,file)
     print(f"Created settings file at {SETTINGS_FILE}")
 
