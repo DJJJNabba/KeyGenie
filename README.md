@@ -1,6 +1,6 @@
 # KeyGenie
 
-![KeyGenie Logo](brain/write.png)
+<img src="brain/write.png" alt="KeyGenie Logo" width="200"/>
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
