@@ -1,6 +1,6 @@
 # KeyGenie
 
-![KeyGenie Logo](write.png)
+![KeyGenie Logo](brain/write.png)
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
